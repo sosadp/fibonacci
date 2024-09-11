@@ -2,6 +2,7 @@ package com.exercise.fibonacci.controllers;
 
 import com.exercise.fibonacci.dtos.NumberResultDTO;
 import com.exercise.fibonacci.services.FibonacciService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1")
+@Tag(name = "Calculate fibonacci number")
 public class CalculateFibonacciController {
 
     private final FibonacciService fibonacciService;

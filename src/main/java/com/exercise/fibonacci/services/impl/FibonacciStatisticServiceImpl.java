@@ -1,5 +1,7 @@
 package com.exercise.fibonacci.services.impl;
 
+import com.exercise.fibonacci.dtos.response.FibonacciStatisticResponse;
+import com.exercise.fibonacci.exceptions.CalculateFibonacciException;
 import com.exercise.fibonacci.models.FibonacciStatistic;
 import com.exercise.fibonacci.repositories.FibonacciStatisticRepository;
 import com.exercise.fibonacci.services.FibonacciStatisticService;
@@ -21,17 +23,26 @@ public class FibonacciStatisticServiceImpl implements FibonacciStatisticService 
     }
 
     @Override
-    public Optional<FibonacciStatistic> getStatisticByNumber(int number) {
-        return Optional.empty();
+    public Optional<FibonacciStatisticResponse> getStatisticByNumber(int number) {
+
+        FibonacciStatistic statisticByNumber = fibonacciStatisticRepository
+                .findByNumber(number)
+                .orElseThrow(()->new CalculateFibonacciException("No such element", new Throwable("No value present")));
+
+        return Optional.ofNullable(FibonacciStatisticResponse.builder()
+                .number(statisticByNumber.getNumber())
+                .requestCount(statisticByNumber.getRequestCount())
+                .build());
+
     }
 
     @Override
-    public List<FibonacciStatistic> getStatisticByDate(Date date) {
+    public List<FibonacciStatisticResponse> getStatisticByDate(Date date) {
         return List.of();
     }
 
     @Override
-    public List<FibonacciStatistic> getStatisticBetweenDate(Date init, Date end) {
+    public List<FibonacciStatisticResponse> getStatisticBetweenDate(Date init, Date end) {
         return List.of();
     }
 }

@@ -3,77 +3,138 @@ package com.exercise.fibonacci;
 import com.exercise.fibonacci.dtos.NumberResultDTO;
 import com.exercise.fibonacci.exceptions.CalculateFibonacciException;
 import com.exercise.fibonacci.models.Fibonacci;
+import com.exercise.fibonacci.models.FibonacciStatistic;
 import com.exercise.fibonacci.repositories.FibonacciRepository;
 import com.exercise.fibonacci.repositories.FibonacciStatisticRepository;
 import com.exercise.fibonacci.services.impl.FibonacciServiceImpl;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class FibonacciServiceTest {
 
     @Mock
-    private FibonacciRepository fibonacciRepository; // Mock del repositorio
+    private FibonacciRepository fibonacciRepository;
 
     @Mock
-    private FibonacciStatisticRepository fibonacciStatisticRepository; // Mock del repositorio de estadísticas
+    private FibonacciStatisticRepository fibonacciStatisticRepository;
 
     @InjectMocks
-    private FibonacciServiceImpl fibonacciServiceImp; // Inyecta los mocks en la implementación del servicio
-
+    private FibonacciServiceImpl fibonacciService;
 
     @Test
-    @DisplayName("Fibonacci calculation service test returns fibonacci number")
-    public void calculateFibonacci(){
+    void calculateFibonacci_negativeValue_throwsException() {
+        int invalidValue = -1;
 
-        //given
-        Fibonacci result = Fibonacci.builder()
-                .number(10)
-                .fibonacciValue(89)
+        CalculateFibonacciException exception = assertThrows(CalculateFibonacciException.class, () ->
+                fibonacciService.calculateFibonacci(invalidValue));
+
+        assertEquals("Invalid fibonacciValue for calculate", exception.getMessage());
+    }
+
+    @Test
+    void calculateFibonacci_valueLessThanOrEqualTo1_returnsValue() {
+        int value = 1;
+
+        Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(value);
+
+        assertTrue(result.isPresent());
+        assertEquals(value, result.get().number());
+        assertEquals(value, result.get().fibonacciValue());
+    }
+
+    @Test
+    void calculateFibonacci_valueGreaterThan1000_throwsException() {
+        int invalidValue = 1001;
+
+        CalculateFibonacciException exception = assertThrows(CalculateFibonacciException.class, () ->
+                fibonacciService.calculateFibonacci(invalidValue));
+
+        assertEquals("Invalid fibonacciValue for calculate", exception.getMessage());
+    }
+
+    @Test
+    void calculateFibonacci_valueInCache_returnsCachedResult() {
+        int value = 10;
+        Fibonacci cachedFibonacci = Fibonacci.builder()
+                .number(value)
+                .fibonacciValue(55L)
                 .build();
 
-        //when
+        when(fibonacciRepository.findByNumber(value)).thenReturn(Optional.of(cachedFibonacci));
 
+        Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(value);
 
-        Mockito.when(fibonacciRepository.findByNumber(10))
-                .thenReturn(Optional.of(result));
+        assertTrue(result.isPresent());
+        assertEquals(value, result.get().number());
+        assertEquals(55L, result.get().fibonacciValue());
 
-        // Llamamos al servicio inyectado con mocks
-        Optional<NumberResultDTO> fibonacciResult = fibonacciServiceImp.calculateFibonacci(10);
+        verify(fibonacciStatisticRepository, times(1)).findByNumber(value);
+        verify(fibonacciRepository, times(1)).findByNumber(value);
+    }
 
-        //then
-        Assertions.assertEquals(89L, fibonacciResult.get().fibonacciValue());
-        Mockito.verify(fibonacciRepository, Mockito.times(1)).findByNumber(Mockito.eq(10));
+    @Test
+    void calculateFibonacci_valueNotInCache_calculatesAndSaves() {
+
+        //Given
+        // Datos de prueba
+        int value = 5;
+        Long expectedValue = 8L;
+        when(fibonacciRepository.findByNumber(value)).thenReturn(Optional.empty());
+
+        //When
+        // Llamada al método
+        Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(value);
+
+        //Then
+        // Verificar el resultado
+        assertTrue(result.isPresent());
+        assertEquals(value, result.get().number());
+        assertEquals(expectedValue, result.get().fibonacciValue());
+
+        // Verificar que el resultado de Fibonacci fue guardado
+        ArgumentCaptor<Fibonacci> fibonacciArgumentCaptor = ArgumentCaptor.forClass(Fibonacci.class);
+        verify(fibonacciRepository).save(fibonacciArgumentCaptor.capture());
+        assertEquals(5, fibonacciArgumentCaptor.getValue().getNumber());
+
 
     }
 
     @Test
-    @DisplayName("Test to validate Exception when the parameter is negative")
-    public void returnExceptionWhenParameterIsNegativeTest(){
+    void statisticRegister_incrementsRequestCount() {
+
         //given
-        int number = -2;
+        int value = 10;
+        FibonacciStatistic existingStatistic = FibonacciStatistic.builder()
+                .number(value)
+                .requestCount(5)
+                .build();
 
-        //when
-        Mockito.when(fibonacciServiceImp.calculateFibonacci(number))
-                .thenThrow(new CalculateFibonacciException("Invalid fibonacciValue for calculate",
-                        new Throwable("the fibonacciValue cannot be negative")));
+        Fibonacci cacheResult = Fibonacci.builder()
+                .number(value)
+                .fibonacciValue(56)
+                .build();
+        //When
+        when(fibonacciRepository.findByNumber(value)).thenReturn(Optional.of(cacheResult));
 
-        // Llamamos al servicio inyectado con mocks
-        CalculateFibonacciException calculateFibonacciException = Assertions.assertThrows(
-                CalculateFibonacciException.class,
-                () -> fibonacciServiceImp.calculateFibonacci(number)
-        );
+        when(fibonacciStatisticRepository.findByNumber(value)).thenReturn(Optional.of(existingStatistic));
+
+        Optional<NumberResultDTO> numberResultDTO = fibonacciService.calculateFibonacci(value);
 
         //then
-        Assertions.assertTrue(calculateFibonacciException.getMessage().contains("Invalid fibonacciValue for calculate"));
+        assertTrue(numberResultDTO.isPresent());
+        assertEquals(6, existingStatistic.getRequestCount());
+        verify(fibonacciStatisticRepository, times(1)).save(any(FibonacciStatistic.class));
+
 
     }
 }

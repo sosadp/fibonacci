@@ -7,9 +7,9 @@ import com.exercise.fibonacci.models.FibonacciStatistic;
 import com.exercise.fibonacci.repositories.FibonacciRepository;
 import com.exercise.fibonacci.repositories.FibonacciStatisticRepository;
 import com.exercise.fibonacci.services.FibonacciService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -20,10 +20,13 @@ import java.util.stream.Stream;
  * Servicio para el calculo fibonacci
  */
 @Service
+@Slf4j
 public class FibonacciServiceImpl implements FibonacciService {
 
     private final FibonacciRepository fibonacciRepository;
     private final FibonacciStatisticRepository fibonacciStatisticRepository;
+
+    private long[] secuenciMemo;
 
     @Autowired
     public FibonacciServiceImpl(FibonacciRepository fibonacciRepository, FibonacciStatisticRepository fibonacciStatisticRepository) {
@@ -38,9 +41,6 @@ public class FibonacciServiceImpl implements FibonacciService {
      */
     @Override
     public Optional<NumberResultDTO> calculateFibonacci(int value) {
-
-        // registra la estadistica de consulta.
-        statisticRegister(value);
 
         if (value<0){
             throw  new CalculateFibonacciException("Invalid fibonacciValue for calculate",
@@ -60,17 +60,26 @@ public class FibonacciServiceImpl implements FibonacciService {
         }
 
         // implementacion del cache desde la base de datos
-        Fibonacci cacheResult = fibonacciRepository.findByNumber(value).orElse(null);
+        Optional<Fibonacci> cacheResult = fibonacciRepository.findByNumber(value);
 
-        if (!ObjectUtils.isEmpty(cacheResult)){
+        if (cacheResult.isPresent()){
+            // registra la estadistica de consulta.
+            statisticRegister(value);
+
             return Optional.ofNullable(NumberResultDTO.builder()
-                    .number(cacheResult.getNumber())
-                    .fibonacciValue(cacheResult.getFibonacciValue())
+                    .number(cacheResult.get().getNumber())
+                    .fibonacciValue(cacheResult.get().getFibonacciValue())
                     .build());
         }
 
         //  obtiene el resultado fibonacci para ser almacenado en la tabla cache y retornado al usuario.
         BigInteger resultFibonacci = computeFibonacci(value);
+
+        secuenciMemo = new long[value+1];
+        secuenciMemo = fibonacciDp(value);
+        for (long num: secuenciMemo){
+            log.info("Fibonacci ==={}",num );
+        }
 
         Fibonacci fibonacci = Fibonacci.builder()
                 .number(value)
@@ -104,5 +113,29 @@ public class FibonacciServiceImpl implements FibonacciService {
                 .map(fib -> fib[0])
                 .reduce((first, second) -> second)
                 .orElseThrow();
+    }
+
+    private long[] fibonacciDp(int n){
+
+        if (n <= 0) {
+            return new long[]{};
+        }
+
+        // Arreglo para almacenar la secuencia de Fibonacci
+        long[] fibonacci = new long[n + 1];
+
+        // Valores base
+        fibonacci[0] = 0;
+
+        if (n > 0) {
+            fibonacci[1] = 1;
+        }
+
+        // Construir la secuencia de Fibonacci utilizando programación dinámica
+        for (int i = 2; i <= n; i++) {
+            fibonacci[i] = fibonacci[i - 1] + fibonacci[i - 2];
+        }
+
+        return fibonacci;
     }
 }

@@ -20,7 +20,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler({CalculateFibonacciException.class, MethodArgumentTypeMismatchException.class})
+    @ExceptionHandler({CalculateFibonacciException.class, MethodArgumentTypeMismatchException.class, FailedDateConvertException.class})
     public ResponseEntity<?> handlerCalculateFibonacciController(Exception e){
         ExceptionResponse response = ExceptionResponse.builder()
                 .timestamp( new Date().toString())

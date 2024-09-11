@@ -10,23 +10,30 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Optional;
+
 @RestController
-@RequestMapping("/api/v1/statistic")
+@RequestMapping("/api/v1")
 @Tag(name = "Statistic")
 public class FibonacciStatisticController {
 
-    private final FibonacciStatisticService fibonacciStatisticService;
-
     @Autowired
-    public FibonacciStatisticController(FibonacciStatisticService fibonacciStatisticService) {
-        this.fibonacciStatisticService = fibonacciStatisticService;
-    }
+    private FibonacciStatisticService fibonacciStatisticService;
 
-    @GetMapping("/{number}")
+    @GetMapping("/statistic/{number}")
     public ResponseEntity<?> getStatiscticByNumber(@PathVariable("number") int number){
 
         FibonacciStatisticResponse statisticByNumber = fibonacciStatisticService.getStatisticByNumber(number).orElseThrow();
 
         return ResponseEntity.ok(statisticByNumber);
+    }
+    @GetMapping("by-date/{date}")
+    public ResponseEntity<?> getStatisticByDate(@PathVariable("date") String date){
+
+        Optional<List<FibonacciStatisticResponse>> statisticByDate = fibonacciStatisticService.getStatisticByDate(date);
+
+        return ResponseEntity.ok(statisticByDate);
+
     }
 }

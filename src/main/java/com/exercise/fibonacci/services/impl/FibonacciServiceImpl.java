@@ -89,12 +89,11 @@ public class FibonacciServiceImpl implements FibonacciService {
         Long resultFibonacci = fibonacciTable.get(value);
 
         //lanza en un hilo diferente el guardado en la base de datos para mejorar el performance en la aplicacion
-        CompletableFuture<Void> future =  CompletableFuture.runAsync(() -> saveSequenceFibonacci(resultForSave), taskexecutor)
+        CompletableFuture.runAsync(() -> saveSequenceFibonacci(resultForSave), taskexecutor)
                 .exceptionally(ex -> {
                     log.error("Error during Fibonacci save", ex);
                     return null;
                 });
-        future.join();
 
         return Optional.ofNullable(NumberResultDTO.builder()
                 .number(value)

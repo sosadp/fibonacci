@@ -99,7 +99,6 @@
 						<exclude>**/config/*</exclude>
 						<exclude>**/dtos/**</exclude>
 						<exclude>**/models/*</exclude>
-						<exclude>**/models/*</exclude>
 					</excludes>
 				</configuration>
 				<executions>

@@ -45,4 +45,4 @@ este es un servicio en la nube llamado railway.
 
 ## Convertura alcanza ##
 
-![img.png](img.png)
+![img_1.png](img_1.png)

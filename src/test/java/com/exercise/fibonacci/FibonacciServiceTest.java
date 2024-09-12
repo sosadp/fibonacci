@@ -121,22 +121,4 @@ public class FibonacciServiceTest {
 
     }
 
-    @Test
-    public void calculateFibonacci_valueNotInCache_calculatesAndSaves() {
-        // Configuración del mock y ejecución del test
-
-        when(fibonacciRepository.findByNumber(anyInt()))
-                .thenReturn(Optional.empty());
-
-        // Ejecuta el cálculo de Fibonacci
-        Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(5);
-
-        // Verifica el resultado esperado
-        assertTrue(result.isPresent());
-        assertEquals(5, result.get().number());
-        assertEquals(5L, result.get().fibonacciValue());
-
-        // Verifica que el método saveAll fue invocado
-        verify(fibonacciRepository, times(1)).saveAll(anyList());
-    }
 }

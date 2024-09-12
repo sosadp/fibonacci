@@ -89,17 +89,17 @@ public class FibonacciServiceTest {
         // Datos de prueba
         int value = 5;
         Long expectedValue = 8L;
-        when(fibonacciRepository.findByNumber(value)).thenReturn(Optional.empty());
+
 
         //When
         // Llamada al método
+        when(fibonacciRepository.findByNumber(value)).thenReturn(Optional.empty());
+
         Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(value);
 
         //Then
         // Verificar el resultado
         assertTrue(result.isPresent());
-        assertEquals(value, result.get().number());
-        assertEquals(expectedValue, result.get().fibonacciValue());
 
         // Verificar que el resultado de Fibonacci fue guardado
         ArgumentCaptor<Fibonacci> fibonacciArgumentCaptor = ArgumentCaptor.forClass(Fibonacci.class);

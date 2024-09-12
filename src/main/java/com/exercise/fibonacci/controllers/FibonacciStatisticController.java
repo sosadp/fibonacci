@@ -28,7 +28,7 @@ public class FibonacciStatisticController {
 
         return ResponseEntity.ok(statisticByNumber);
     }
-    @GetMapping("by-date/{date}")
+    @GetMapping("/statistic/by-date/{date}")
     public ResponseEntity<?> getStatisticByDate(@PathVariable("date") String date){
 
         Optional<List<FibonacciStatisticResponse>> statisticByDate = fibonacciStatisticService.getStatisticByDate(date);

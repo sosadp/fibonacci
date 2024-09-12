@@ -7,13 +7,13 @@ import com.exercise.fibonacci.models.FibonacciStatistic;
 import com.exercise.fibonacci.repositories.FibonacciRepository;
 import com.exercise.fibonacci.repositories.FibonacciStatisticRepository;
 import com.exercise.fibonacci.services.FibonacciService;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigInteger;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -21,12 +21,15 @@ import java.util.stream.Stream;
  */
 @Service
 @Slf4j
+@Transactional
 public class FibonacciServiceImpl implements FibonacciService {
 
     private final FibonacciRepository fibonacciRepository;
     private final FibonacciStatisticRepository fibonacciStatisticRepository;
 
-    private long[] secuenciMemo;
+    //private long[] secuenciMemo;
+
+    private Map<Integer, Long> fibonacciTable = new HashMap<>();
 
     @Autowired
     public FibonacciServiceImpl(FibonacciRepository fibonacciRepository, FibonacciStatisticRepository fibonacciStatisticRepository) {
@@ -72,25 +75,22 @@ public class FibonacciServiceImpl implements FibonacciService {
                     .build());
         }
 
-        //  obtiene el resultado fibonacci para ser almacenado en la tabla cache y retornado al usuario.
-        BigInteger resultFibonacci = computeFibonacci(value);
+        //Invoca el calculo de los valores intermedios y transforma en un lista para poder ser persistido.
+        fibonacciTable.clear();
+        fibonacciTable = fibonacciDp(value);
 
-        secuenciMemo = new long[value+1];
-        secuenciMemo = fibonacciDp(value);
-        for (long num: secuenciMemo){
-            log.info("Fibonacci ==={}",num );
-        }
 
-        Fibonacci fibonacci = Fibonacci.builder()
-                .number(value)
-                .fibonacciValue(resultFibonacci.longValue())
-                .build();
+        List<Fibonacci> resultForSave = fibonacciTable.entrySet().stream()
+                .map(fibValue -> Fibonacci.builder().number(fibValue.getKey()).fibonacciValue(fibValue.getValue()).build())
+                .toList();
 
-        fibonacciRepository.save(fibonacci);
+        Long resultFibonacci = fibonacciTable.get(value);
+
+        saveSequenceFibonacci(resultForSave);
 
         return Optional.ofNullable(NumberResultDTO.builder()
                 .number(value)
-                .fibonacciValue(resultFibonacci.longValue())
+                .fibonacciValue(resultFibonacci)
                 .build());
     }
 
@@ -105,37 +105,49 @@ public class FibonacciServiceImpl implements FibonacciService {
         fibonacciStatisticRepository.save(fibonacciStatistic);
     }
 
-    private BigInteger computeFibonacci(int n) {
-        // Usamos Stream.iterate en lugar de IntStream para manejar el array
-        return Stream.iterate(new BigInteger[]{BigInteger.ONE, BigInteger.TWO},
-                        fib -> new BigInteger[]{fib[1], fib[0].add(fib[1])})
-                .limit(n)
-                .map(fib -> fib[0])
-                .reduce((first, second) -> second)
-                .orElseThrow();
-    }
-
-    private long[] fibonacciDp(int n){
+    private Map<Integer, Long> fibonacciDp(int n){
 
         if (n <= 0) {
-            return new long[]{};
+            throw new CalculateFibonacciException("Invalid value", new Throwable("The value must not be less than or equal to 0"));
         }
-
         // Arreglo para almacenar la secuencia de Fibonacci
         long[] fibonacci = new long[n + 1];
-
         // Valores base
         fibonacci[0] = 0;
+        fibonacciTable.put(0, fibonacci[0]);
 
         if (n > 0) {
             fibonacci[1] = 1;
+            fibonacciTable.put(1, fibonacci[1]);
         }
-
         // Construir la secuencia de Fibonacci utilizando programación dinámica
         for (int i = 2; i <= n; i++) {
             fibonacci[i] = fibonacci[i - 1] + fibonacci[i - 2];
+            fibonacciTable.put(i, fibonacci[i]);
         }
 
-        return fibonacci;
+        return fibonacciTable;
+    }
+
+    private void saveSequenceFibonacci(List<Fibonacci> fibonaccis){
+        //Obten los number los intermedios
+
+        List<Integer> numbers = fibonaccis.stream()
+                .map(Fibonacci::getNumber)
+                .filter(Objects::nonNull)
+                .toList();
+
+        //busca los numeros ya persistidos
+        List<Fibonacci> existingNumbers = fibonacciRepository.findAllByNumberIn(numbers);
+
+        //conjunto sin numero repetidos
+        Set<Integer> existingNumber = existingNumbers.stream()
+                .map(Fibonacci::getNumber)
+                .collect(Collectors.toSet());
+
+        List<Fibonacci> newFibonacci = fibonaccis.stream()
+                .filter( fib -> !existingNumber.contains(fib.getNumber())).toList();
+
+        fibonacciRepository.saveAll(newFibonacci);
     }
 }

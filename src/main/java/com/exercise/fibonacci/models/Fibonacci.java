@@ -19,8 +19,10 @@ public class Fibonacci implements Serializable {
     private static final long serialVersionUID = 1245389494L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "my_sequence_generator")
+    @SequenceGenerator(name = "my_sequence_generator", sequenceName = "sequence_fibonacci", allocationSize = 1)
     private Long id;
+    @Column(unique = true)
     private int number;
     private long fibonacciValue;
 }

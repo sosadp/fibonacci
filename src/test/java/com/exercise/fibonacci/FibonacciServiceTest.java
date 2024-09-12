@@ -7,6 +7,7 @@ import com.exercise.fibonacci.models.FibonacciStatistic;
 import com.exercise.fibonacci.repositories.FibonacciRepository;
 import com.exercise.fibonacci.repositories.FibonacciStatisticRepository;
 import com.exercise.fibonacci.services.impl.FibonacciServiceImpl;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,9 +21,7 @@ import java.util.concurrent.Executor;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-//@ExtendWith(SpringExtension.class) // Reemplaza SpringRunner con SpringExtension para JUnit 5
-@ExtendWith(MockitoExtension.class) // Sigue usando Mockito en JUnit 5
-//@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 @Import(TestAsyncConfig.class)
 public class FibonacciServiceTest {
 
@@ -39,6 +38,7 @@ public class FibonacciServiceTest {
     private FibonacciServiceImpl fibonacciService;
 
     @Test
+    @DisplayName("Test to validate the Exception when the value is negative")
     void calculateFibonacci_negativeValue_throwsException() {
         int invalidValue = -1;
 
@@ -49,7 +49,8 @@ public class FibonacciServiceTest {
     }
 
     @Test
-    void calculateFibonacci_valueLessThanOrEqualTo1_returnsValue() {
+    @DisplayName("Test to validate the return when the value is 1")
+    public void calculateFibonacciValueLessThanOrEqualTo1ReturnsValue() {
         int value = 1;
 
         Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(value);
@@ -60,7 +61,8 @@ public class FibonacciServiceTest {
     }
 
     @Test
-    void calculateFibonacci_valueGreaterThan1000_throwsException() {
+    @DisplayName("Test to validate the limit up to 1001")
+    public void calculateFibonacciValueGreaterThan1000ThrowsExceptionTest() {
         int invalidValue = 1001;
 
         CalculateFibonacciException exception = assertThrows(CalculateFibonacciException.class, () ->
@@ -70,7 +72,8 @@ public class FibonacciServiceTest {
     }
 
     @Test
-    void calculateFibonacci_valueInCache_returnsCachedResult() {
+    @DisplayName("Test to validate the use of the cache")
+    public void calculateFibonacciValueInCacheReturnsCachedResult() {
         int value = 10;
         Fibonacci cachedFibonacci = Fibonacci.builder()
                 .number(value)
@@ -90,51 +93,8 @@ public class FibonacciServiceTest {
     }
 
     @Test
-    void calculateFibonacci_valueNotInCache_calculatesAndSaves() {
-        /**
-         *  //Given
-         *         // Datos de prueba
-         *         int value = 5;
-         *         Long expectedValue = 8L;
-         *
-         *
-         *         //When
-         *         // Llamada al método
-         *         when(fibonacciRepository.findByNumber(value)).thenReturn(Optional.empty());
-         *
-         *         Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(value);
-         *
-         *         //Then
-         *         // Verificar el resultado
-         *         assertTrue(result.isPresent());
-         *
-         *         // Verificar que el resultado de Fibonacci fue guardado
-         *         ArgumentCaptor<Fibonacci> fibonacciArgumentCaptor = ArgumentCaptor.forClass(Fibonacci.class);
-         *         verify(fibonacciRepository).save(fibonacciArgumentCaptor.capture());
-         *         verify(fibonacciRepository, times(1)).saveAll(anyList());
-         *         assertEquals(5, fibonacciArgumentCaptor.getValue().getNumber());
-
-         */
-
-
-        when(fibonacciRepository.findByNumber(anyInt()))
-                .thenReturn(Optional.empty());
-
-        // Ejecuta el cálculo de Fibonacci
-        Optional<NumberResultDTO> result = fibonacciService.calculateFibonacci(5);
-
-        // Verifica el resultado esperado
-        assertTrue(result.isPresent());
-        assertEquals(5, result.get().number());
-        assertEquals(5L, result.get().fibonacciValue());
-
-        // Verifica que se haya llamado al método asíncrono
-        //verify(fibonacciRepository, times(1)).saveAll(anyList());
-
-    }
-
-    @Test
-    void statisticRegister_incrementsRequestCount() {
+    @DisplayName("Test to validate the increase in statistics")
+    public void statisticRegisterIncrementsRequestCountTest() {
 
         //given
         int value = 10;
@@ -158,7 +118,6 @@ public class FibonacciServiceTest {
         assertTrue(numberResultDTO.isPresent());
         assertEquals(6, existingStatistic.getRequestCount());
         verify(fibonacciStatisticRepository, times(1)).save(any(FibonacciStatistic.class));
-
 
     }
 }

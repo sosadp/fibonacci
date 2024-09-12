@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 
@@ -26,8 +28,8 @@ public class FibonacciServiceImpl implements FibonacciService {
 
     private final FibonacciRepository fibonacciRepository;
     private final FibonacciStatisticRepository fibonacciStatisticRepository;
-
-    //private long[] secuenciMemo;
+    @Autowired
+    private Executor taskexecutor;
 
     private Map<Integer, Long> fibonacciTable = new HashMap<>();
 
@@ -39,25 +41,26 @@ public class FibonacciServiceImpl implements FibonacciService {
 
     /**
      * Metodo para el orquestacion del calculo y cacheado de los calculos de fibonacci
+     *
      * @param value es el numero que se le calculara la secuencia fibonacci.
      * @return
      */
     @Override
     public Optional<NumberResultDTO> calculateFibonacci(int value) {
 
-        if (value<0){
-            throw  new CalculateFibonacciException("Invalid fibonacciValue for calculate",
+        if (value < 0) {
+            throw new CalculateFibonacciException("Invalid fibonacciValue for calculate",
                     new Throwable("the fibonacciValue cannot to be negative"));
         }
 
-        if (value<=1) {
+        if (value <= 1) {
             return Optional.ofNullable(NumberResultDTO.builder()
                     .number(value)
                     .fibonacciValue(value)
                     .build());
         }
         //protege los recursos del equipo para que no procese serie mayor a 1000.
-        if (value>1000){
+        if (value > 1000) {
             throw new CalculateFibonacciException("Invalid fibonacciValue for calculate",
                     new Throwable("The fibonacciValue of n is too large. Try a fibonacciValue less than 1000."));
         }
@@ -65,7 +68,7 @@ public class FibonacciServiceImpl implements FibonacciService {
         // implementacion del cache desde la base de datos
         Optional<Fibonacci> cacheResult = fibonacciRepository.findByNumber(value);
 
-        if (cacheResult.isPresent()){
+        if (cacheResult.isPresent()) {
             // registra la estadistica de consulta.
             statisticRegister(value);
 
@@ -79,14 +82,19 @@ public class FibonacciServiceImpl implements FibonacciService {
         fibonacciTable.clear();
         fibonacciTable = fibonacciDp(value);
 
-
         List<Fibonacci> resultForSave = fibonacciTable.entrySet().stream()
                 .map(fibValue -> Fibonacci.builder().number(fibValue.getKey()).fibonacciValue(fibValue.getValue()).build())
                 .toList();
 
         Long resultFibonacci = fibonacciTable.get(value);
 
-        saveSequenceFibonacci(resultForSave);
+        //lanza en un hilo diferente el guardado en la base de datos para mejorar el performance en la aplicacion
+        CompletableFuture<Void> future =  CompletableFuture.runAsync(() -> saveSequenceFibonacci(resultForSave), taskexecutor)
+                .exceptionally(ex -> {
+                    log.error("Error during Fibonacci save", ex);
+                    return null;
+                });
+        future.join();
 
         return Optional.ofNullable(NumberResultDTO.builder()
                 .number(value)
@@ -96,16 +104,16 @@ public class FibonacciServiceImpl implements FibonacciService {
 
     private void statisticRegister(int value) {
         FibonacciStatistic fibonacciStatistic = fibonacciStatisticRepository.findByNumber(value)
-                .orElseGet(()-> FibonacciStatistic.builder()
+                .orElseGet(() -> FibonacciStatistic.builder()
                         .number(value)
                         .requestCount(0)
                         .build()
                 );
-        fibonacciStatistic.setRequestCount(fibonacciStatistic.getRequestCount()+1);
+        fibonacciStatistic.setRequestCount(fibonacciStatistic.getRequestCount() + 1);
         fibonacciStatisticRepository.save(fibonacciStatistic);
     }
 
-    private Map<Integer, Long> fibonacciDp(int n){
+    private Map<Integer, Long> fibonacciDp(int n) {
 
         if (n <= 0) {
             throw new CalculateFibonacciException("Invalid value", new Throwable("The value must not be less than or equal to 0"));
@@ -125,13 +133,15 @@ public class FibonacciServiceImpl implements FibonacciService {
             fibonacci[i] = fibonacci[i - 1] + fibonacci[i - 2];
             fibonacciTable.put(i, fibonacci[i]);
         }
-
         return fibonacciTable;
     }
 
-    private void saveSequenceFibonacci(List<Fibonacci> fibonaccis){
+    /**
+     * Hace la persistencia de solo los numeros y su valo fibonacci que no estan en la base de datos.
+     * @param fibonaccis
+     */
+    public void saveSequenceFibonacci(List<Fibonacci> fibonaccis) {
         //Obten los number los intermedios
-
         List<Integer> numbers = fibonaccis.stream()
                 .map(Fibonacci::getNumber)
                 .filter(Objects::nonNull)
@@ -146,7 +156,7 @@ public class FibonacciServiceImpl implements FibonacciService {
                 .collect(Collectors.toSet());
 
         List<Fibonacci> newFibonacci = fibonaccis.stream()
-                .filter( fib -> !existingNumber.contains(fib.getNumber())).toList();
+                .filter(fib -> !existingNumber.contains(fib.getNumber())).toList();
 
         fibonacciRepository.saveAll(newFibonacci);
     }

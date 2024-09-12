@@ -1,17 +1,17 @@
 # Fibonacci RestAPI #
 
-## Resumen##
+## Resumen ##
 
 Esta es un rest api que proporciona el numero fibonacci de un numero dado, también puede suministrar la estadísticas de consultas de los números consultado y la ocurrencia de la búsqueda.
 
-## Stack tecnológico##
+## Stack tecnológico ##
 - Java 17
 - Spring Boot
 - Spring Data JPA
 - PostgresSQL
 - Swagger
 
-## Funcionalidades##
+## Funcionalidades ##
 La rest API cuenta con los siguientes endpoint:
 - Calculo de numero Fibonacci: es el endpoint de la funcion principal el cual generara con resultado el numero fibonacci del numero consultado.
 

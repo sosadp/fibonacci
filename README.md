@@ -43,6 +43,6 @@ fibonacci-production-36db.up.railway.app
 
 este es un servicio en la nube llamado railway.
 
-## Convertura alcanza ##
+## Cobertura alcanza ##
 
 ![img_1.png](img_1.png)

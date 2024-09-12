@@ -14,21 +14,21 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/statistic")
 @Tag(name = "Statistic")
 public class FibonacciStatisticController {
 
     @Autowired
     private FibonacciStatisticService fibonacciStatisticService;
 
-    @GetMapping("/statistic/{number}")
+    @GetMapping("/{number}")
     public ResponseEntity<?> getStatiscticByNumber(@PathVariable("number") int number){
 
         FibonacciStatisticResponse statisticByNumber = fibonacciStatisticService.getStatisticByNumber(number).orElseThrow();
 
         return ResponseEntity.ok(statisticByNumber);
     }
-    @GetMapping("/statistic/by-date/{date}")
+    @GetMapping("/by-date/{date}")
     public ResponseEntity<?> getStatisticByDate(@PathVariable("date") String date){
 
         Optional<List<FibonacciStatisticResponse>> statisticByDate = fibonacciStatisticService.getStatisticByDate(date);
